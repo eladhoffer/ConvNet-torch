@@ -8,7 +8,7 @@ You can get the needed data using @soumith's repo: https://github.com/soumith/ci
 ##Training
 You can start training using:
 ```lua
-th Main.lua -dataset Cifar10 -LR 0.1
+th Main.lua -dataset Cifar10 -network Cifar10_Model -LR 0.1
 ```
 ##Additional flags
 |Flag             | Default Value        |Description
