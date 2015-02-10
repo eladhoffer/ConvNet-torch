@@ -54,6 +54,9 @@ torch.setnumthreads(opt.threads)
 cutorch.setDevice(opt.devid)
 
 torch.setdefaulttensortype('torch.FloatTensor')
+if opt.augment then
+    require 'image'
+end
 ----------------------------------------------------------------------
 -- Model + Loss:
 local model = require(opt.network)
@@ -112,7 +115,29 @@ local optimizer = Optimizer{
     HookFunction = updateConfusion
 }
 
+local function SampleImages(images,labels)
+    if not opt.augment then
+        return images,labels
+    else
 
+        local sampled_imgs = images:clone()
+        for i=1,images:size(1) do
+            local sz = math.random(9) - 1
+            local hflip = math.random(2)==1
+
+            local startx = math.random(sz) 
+            local starty = math.random(sz) 
+            local img = images[i]:narrow(2,starty,32-sz):narrow(3,startx,32-sz)
+            if hflip then
+                img = image.hflip(img)
+            end
+            img = image.scale(img,32,32)
+            sampled_imgs[i]:copy(img)
+        end
+        return sampled_imgs,labels
+    end
+end
+    
 ------------------------------
 local function Train(Data)
 
@@ -122,6 +147,7 @@ local function Train(Data)
         Name = 'GPU_Batch',
         MaxNumItems = opt.batchSize,
         Source = Data,
+        ExtractFunction = SampleImages,
         TensorType = TensorType
     }
 
