@@ -13,6 +13,11 @@ You can start training using:
 ```lua
 th Main.lua -dataset Cifar10 -network Cifar10_Model -LR 0.1
 ```
+or,
+```lua
+th Main.lua -dataset Cifar100 -network Cifar100_Model -LR 0.1
+```
+
 ##Additional flags
 |Flag             | Default Value        |Description
 |:----------------|:--------------------:|:----------------------------------------------
