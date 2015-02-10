@@ -5,6 +5,9 @@ This is a complete training example for Cifar10/100 tasks (http://www.cs.toronto
 ##Data
 You can get the needed data using @soumith's repo: https://github.com/soumith/cifar.torch.git
 
+##Dependencies
+Requires "eladtools" (https://github.com/eladhoffer/eladtools.git) for DataProvider class and optimizer.
+
 ##Training
 You can start training using:
 ```lua
