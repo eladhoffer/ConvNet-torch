@@ -7,8 +7,6 @@ require 'trepl'
 
 ----------------------------------------------------------------------
 
-print '==> processing options'
-
 cmd = torch.CmdLine()
 cmd:addTime()
 cmd:text()
@@ -79,6 +77,13 @@ local weights_filename = paths.concat(opt.save, 'Weights.t7')
 local log_filename = paths.concat(opt.save,'TrainingLog.log')
 local Log = optim.Logger(log_filename)
 ----------------------------------------------------------------------
+print '==> Network'
+print(model)
+print '==> Loss'
+print(loss)
+
+----------------------------------------------------------------------
+
 local TensorType = 'torch.FloatTensor'
 if opt.type =='cuda' then
     model:cuda()
@@ -112,7 +117,6 @@ local optimizer = Optimizer{
     OptFunction = _G.optim[opt.optimization],
     OptState = optimState,
     Parameters = {Weights, Gradients},
-    HookFunction = updateConfusion
 }
 
 local function SampleImages(images,labels)
@@ -160,7 +164,8 @@ local function Train(Data)
         NumSamples = NumSamples+x:size(1)
         NumBatches = NumBatches + 1
         if ccn2_compatibility==false or math.fmod(x:size(1),32)==0 then
-            optimizer:optimize(x, yt)
+            local y = optimizer:optimize(x, yt)
+            updateConfusion(y,yt)
         end
         xlua.progress(NumSamples, SizeData)
 
@@ -205,6 +210,7 @@ local function Test(Data)
 end
 
 local epoch = 1
+print '\n==> Starting Training\n'
 while true do
     data.TrainData:ShuffleItems()
 
