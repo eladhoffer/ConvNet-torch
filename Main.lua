@@ -4,13 +4,14 @@ require 'optim'
 require 'pl'
 require 'eladtools'
 require 'trepl'
+require 'fbnn'
 
 ----------------------------------------------------------------------
 
 cmd = torch.CmdLine()
 cmd:addTime()
 cmd:text()
-cmd:text('Training a network on CIFAR 10/100')
+cmd:text('Training a convolutional network for visual classification')
 cmd:text()
 cmd:text('==>Options')
 
@@ -35,7 +36,8 @@ cmd:option('-load',               '',                  'load existing net weight
 cmd:option('-save',               os.date():gsub(' ',''), 'save directory')
 
 cmd:text('===>Data Options')
-cmd:option('-dataset',            'Cifar10',              'Dataset - Cifar10 or Cifar100')
+cmd:option('-dataset',            'Cifar10',              'Dataset - Cifar10, Cifar100, STL10, SVHN, MNIST')
+cmd:option('-normalize',          1,                      '1 - normalize using only 1 mean and std values, 2 for global contrast normalization')
 cmd:option('-whiten',             false,                  'whiten data')
 cmd:option('-augment',            false,                  'Augment training data')
 cmd:option('-preProcDir',         './PreProcData/',       'Data for pre-processing (means,P,invP)')
@@ -63,7 +65,11 @@ local loss = nn.ClassNLLCriterion()
 local data = require 'Data'
 local classes      = data.Classes
 
-local ccn2_compatibility = true
+local ccn2_compatibility = false
+model:for_each(function(x) 
+    ccn2_compatibility = ccn2_compatibility or (torch.type(x):find('ccn2') ~= nil)
+end)
+
 ----------------------------------------------------------------------
 
 -- This matrix records the current confusion across classes
@@ -111,13 +117,15 @@ if paths.filep(opt.load) then
     Weights:copy(w)
 end
 
-local optimizer = Optimizer{
-    Model = model,
-    Loss = loss,
-    OptFunction = _G.optim[opt.optimization],
-    OptState = optimState,
-    Parameters = {Weights, Gradients},
-}
+local optimizer = nn.Optim(model, optimState)
+local optimMethod = _G.optim[opt.optimization]
+--local optimizer = Optimizer{
+--    Model = model,
+--    Loss = loss,
+--    OptFunction = _G.optim[opt.optimization],
+--    OptState = optimState,
+--    Parameters = {Weights, Gradients},
+--}
 
 local function SampleImages(images,labels)
     if not opt.augment then
@@ -142,6 +150,7 @@ local function SampleImages(images,labels)
     end
 end
     
+
 ------------------------------
 local function Train(Data)
 
@@ -164,7 +173,8 @@ local function Train(Data)
         NumSamples = NumSamples+x:size(1)
         NumBatches = NumBatches + 1
         if ccn2_compatibility==false or math.fmod(x:size(1),32)==0 then
-            local y = optimizer:optimize(x, yt)
+            --local y = optimizer:optimize(x, yt)
+            local _, y = optimizer:optimize(optimMethod, x, yt, loss)
             updateConfusion(y,yt)
         end
         xlua.progress(NumSamples, SizeData)

@@ -1,6 +1,6 @@
-Deep Networks on Cifar10/Cifar100 using Torch
-=============================================
-This is a complete training example for Cifar10/100 tasks (http://www.cs.toronto.edu/~kriz/cifar.html)
+Deep Networks on classification tasks using Torch
+=================================================
+This is a complete training example for {Cifar10/100, STL10, SVHN, MNIST} tasks 
 
 ##Data
 You can get the needed data using @soumith's repo: https://github.com/soumith/cifar.torch.git
@@ -35,7 +35,7 @@ th Main.lua -dataset Cifar100 -network Cifar100_Model -LR 0.1
 |devid            |  1                   | device ID (if using CUDA)
 |load             |  none                |  load existing net weights
 |save             |  time-identifier     | save directory
-|dataset          |  Cifar10             | Dataset - Cifar10 or Cifar100
+|dataset          |  Cifar10             | Dataset - Cifar10, Cifar100, STL10, SVHN, MNIST
 |whiten           |  false               | whiten data
 |augment          |  false               | Augment training data
 |preProcDir       |  ./PreProcData/      | Data for pre-processing (means,Pinv,P)
