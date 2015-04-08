@@ -4,7 +4,7 @@ local Dataset = opt.dataset or 'Cifar10'
 local PreProcDir = opt.preProcDir or './'
 local Whiten = opt.whiten or false
 local DataPath = opt.datapath or '/home/ehoffer/Datasets/'
-local SimpleNormalization = (opt.normalize==1) or false
+local SimpleNormalization = (opt.simplenorm) or false
 
 local TestData
 local TrainData
