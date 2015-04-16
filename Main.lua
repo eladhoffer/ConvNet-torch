@@ -29,6 +29,7 @@ cmd:text('===>Platform Optimization')
 cmd:option('-threads',            8,                      'number of threads')
 cmd:option('-type',               'cuda',                 'float or cuda')
 cmd:option('-devid',              1,                      'device ID (if using CUDA)')
+cmd:option('-nGPU',               1,                      'num of gpu devices used')
 
 cmd:text('===>Save/Load Options')
 cmd:option('-load',               '',                  'load existing net weights')
@@ -107,6 +108,18 @@ local function updateConfusion(y,yt)
     confusion:batchAdd(y,yt)
 end
 
+---Support for multiple GPUs - currently data parallel scheme
+if opt.nGPU > 1 then
+    local net = model
+    model = nn.DataParallelTable(1)
+    for i = 1, opt.nGPU do
+        cutorch.setDevice(i)
+        model:add(net:clone():cuda(), i)  -- Use the ith GPU
+    end
+    ccn2_compatibility = true
+    cutorch.setDevice(opt.devid)
+end
+
 -- Optimization configuration
 local Weights,Gradients = model:getParameters()
 
@@ -116,8 +129,11 @@ if paths.filep(opt.load) then
     Weights:copy(w)
 end
 
---local optimizer = nn.Optim(model, optimState)
---local optimMethod = _G.optim[opt.optimization]
+if opt.nGPU > 1 then
+    model:syncParameters()
+end
+
+
 local optimizer = Optimizer{
     Model = model,
     Loss = loss,
@@ -172,9 +188,15 @@ local function Train(Data)
         NumSamples = NumSamples+x:size(1)
         NumBatches = NumBatches + 1
         if ccn2_compatibility==false or math.fmod(x:size(1),32)==0 then
+            
+            if opt.nGPU > 1 then
+               model:zeroGradParameters()
+               model:syncParameters()
+           end
+
            local y = optimizer:optimize(x, yt)
-           -- local _, y = optimizer:optimize(optimMethod, x, yt, loss)
-            updateConfusion(y,yt)
+           
+           updateConfusion(y,yt)
         end
         xlua.progress(NumSamples, SizeData)
 
