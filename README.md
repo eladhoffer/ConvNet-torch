@@ -1,12 +1,21 @@
 Deep Networks on classification tasks using Torch
 =================================================
-This is a complete training example for {Cifar10/100, STL10, SVHN, MNIST} tasks 
+This is a complete training example for {Cifar10/100, STL10, SVHN, MNIST} tasks
 
 ##Data
 You can get the needed data using @soumith's repo: https://github.com/soumith/cifar.torch.git
 
 ##Dependencies
-Requires "eladtools" (https://github.com/eladhoffer/eladtools.git) for DataProvider class and optimizer.
+* Torch (http://torch.ch)
+* "eladtools" (https://github.com/eladhoffer/eladtools) for optimizer.
+* "DataProvider.torch" (https://github.com/eladhoffer/DataProvider.torch) for DataProvider class.
+* "cudnn.torch" (https://github.com/soumith/cudnn.torch) for faster training. Can be avoided by changing "cudnn" to "nn" in models.
+
+To install all dependencies (assuming torch is installed) use:
+```bash
+luarocks install https://raw.githubusercontent.com/eladhoffer/eladtools/master/eladtools-scm-1.rockspec
+luarocks install https://raw.githubusercontent.com/eladhoffer/DataProvider.torch/master/dataprovider-scm-1.rockspec
+```
 
 ##Training
 You can start training using:

@@ -174,7 +174,7 @@ end
 local function Forward(Data, train)
 
 
-  local MiniBatch = DataProvider{
+  local MiniBatch = DataProvider.Container{
     Name = 'GPU_Batch',
     MaxNumItems = opt.batchSize,
     Source = Data,
@@ -191,7 +191,7 @@ local function Forward(Data, train)
   local NumBatches = 0
   local lossVal = 0
 
-  while MiniBatch:GetNextBatch() do
+  while MiniBatch:getNextBatch() do
     local y, currLoss
     NumSamples = NumSamples+x:size(1)
     NumBatches = NumBatches + 1
@@ -236,7 +236,7 @@ local epoch = 1
 print '\n==> Starting Training\n'
 
 while epoch ~= opt.epoch do
-    data.TrainData:ShuffleItems()
+    data.TrainData:shuffleItems()
 
     print('Epoch ' .. epoch)
     --Train

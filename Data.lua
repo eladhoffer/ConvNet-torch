@@ -1,4 +1,4 @@
-require 'eladtools'
+local DataProvider = require 'DataProvider'
 local opt = opt or {}
 local Dataset = opt.dataset or 'Cifar10'
 local PreProcDir = opt.preProcDir or './'
@@ -55,9 +55,9 @@ TrainData.label:add(1)
 TestData.label:add(1)
 TrainData.data = TrainData.data:float()
 TestData.data = TestData.data:float()
+print(TrainData.label:size())
 
-
-local TrainDataProvider = DataProvider{
+local TrainDataProvider = DataProvider.Container{
   Name = 'TrainingData',
   CachePrefix = nil,
   CacheFiles = false,
@@ -65,9 +65,8 @@ local TrainDataProvider = DataProvider{
   MaxNumItems = 1e6,
   CopyData = false,
   TensorType = 'torch.FloatTensor',
-
 }
-local TestDataProvider = DataProvider{
+local TestDataProvider = DataProvider.Container{
   Name = 'TestData',
   CachePrefix = nil,
   CacheFiles = false,
@@ -84,8 +83,8 @@ local TestDataProvider = DataProvider{
 
 if format == 'yuv' then
   require 'image'
-  TrainDataProvider:Apply(image.rgb2yuv)
-  TestDataProvider:Apply(image.rgb2yuv)
+  TrainDataProvider:apply(image.rgb2yuv)
+  TestDataProvider:apply(image.rgb2yuv)
 end
 
 if Whiten then
@@ -120,8 +119,8 @@ else
     loaded = true
   end
 
-  mean, std = TrainDataProvider:Normalize(normalization, mean, std)
-  TestDataProvider:Normalize(normalization, mean, std)
+  mean, std = TrainDataProvider:normalize(normalization, mean, std)
+  TestDataProvider:normalize(normalization, mean, std)
 
   if not loaded then
     torch.save(meanfile,mean)
