@@ -55,7 +55,6 @@ TrainData.label:add(1)
 TestData.label:add(1)
 TrainData.data = TrainData.data:float()
 TestData.data = TestData.data:float()
-print(TrainData.label:size())
 
 local TrainDataProvider = DataProvider.Container{
   Name = 'TrainingData',
