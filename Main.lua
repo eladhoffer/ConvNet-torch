@@ -2,7 +2,6 @@ require 'torch'
 require 'xlua'
 require 'optim'
 require 'pl'
-require 'eladtools'
 require 'trepl'
 
 ----------------------------------------------------------------------
@@ -53,7 +52,6 @@ opt.save = paths.concat('./Results', opt.save)
 opt.preProcDir = paths.concat(opt.preProcDir, opt.dataset .. '/')
 os.execute('mkdir -p ' .. opt.preProcDir)
 torch.setnumthreads(opt.threads)
-cutorch.setDevice(opt.devid)
 
 torch.setdefaulttensortype('torch.FloatTensor')
 if opt.augment then
@@ -89,6 +87,8 @@ local Log = optim.Logger(logFilename)
 
 local TensorType = 'torch.FloatTensor'
 if opt.type =='cuda' then
+    require 'cutorch'
+    cutorch.setDevice(opt.devid)
     model:cuda()
     loss = loss:cuda()
     TensorType = 'torch.CudaTensor'
@@ -128,22 +128,12 @@ print(loss)
 
 
 ------------------Optimization Configuration--------------------------
-
 local optimState = {
     learningRate = opt.LR,
     momentum = opt.momentum,
     weightDecay = opt.weightDecay,
     learningRateDecay = opt.LRDecay
 }
-
-local optimizer = Optimizer{
-    Model = model,
-    Loss = loss,
-    OptFunction = _G.optim[opt.optimization],
-    OptState = optimState,
-    Parameters = {Weights, Gradients},
-}
-
 ----------------------------------------------------------------------
 
 local function SampleImages(images,labels)
@@ -191,20 +181,26 @@ local function Forward(Data, train)
   local NumBatches = 0
   local lossVal = 0
 
-  while MiniBatch:getNextBatch() do
+  while NumSamples < SizeData do
+    MiniBatch:getNextBatch()
     local y, currLoss
-    NumSamples = NumSamples+x:size(1)
+    NumSamples = NumSamples + x:size(1)
     NumBatches = NumBatches + 1
-    if train then
-      if opt.nGPU > 1 then
-        model:zeroGradParameters()
-        model:syncParameters()
-      end
-      y, currLoss = optimizer:optimize(x, yt)
-    else
-      y = model:forward(x)
-      currLoss = loss:forward(y,yt)
+    if opt.nGPU > 1 then
+      model:syncParameters()
     end
+    y = model:forward(x)
+    currLoss = loss:forward(y,yt)
+    if train then
+      function feval()
+        model:zeroGradParameters()
+        local dE_dy = loss:backward(y, yt)
+        model:backward(x, dE_dy)
+        return currLoss, Gradients
+      end
+      _G.optim[opt.optimization](feval, Weights, optimState)
+    end
+
     lossVal = currLoss + lossVal
 
     if type(y) == 'table' then --table results - always take first prediction

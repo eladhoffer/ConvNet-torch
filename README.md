@@ -7,7 +7,6 @@ You can get the needed data using @soumith's repo: https://github.com/soumith/ci
 
 ##Dependencies
 * Torch (http://torch.ch)
-* "eladtools" (https://github.com/eladhoffer/eladtools) for optimizer.
 * "DataProvider.torch" (https://github.com/eladhoffer/DataProvider.torch) for DataProvider class.
 * "cudnn.torch" (https://github.com/soumith/cudnn.torch) for faster training. Can be avoided by changing "cudnn" to "nn" in models.
 
