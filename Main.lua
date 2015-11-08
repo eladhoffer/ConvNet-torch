@@ -238,7 +238,7 @@ while epoch ~= opt.epoch do
     --Train
     confusion:zero()
     local LossTrain = Train(data.TrainData)
-    torch.save(netFilename, model)
+    torch.save(netFilename, savedModel)
     confusion:updateValids()
     local ErrTrain = (1-confusion.totalValid)
     if #classes <= 10 then
