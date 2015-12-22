@@ -88,6 +88,7 @@ local Log = optim.Logger(logFilename)
 local TensorType = 'torch.FloatTensor'
 if opt.type =='cuda' then
     require 'cutorch'
+    require 'cunn'
     cutorch.setDevice(opt.devid)
     model:cuda()
     loss = loss:cuda()
@@ -112,7 +113,6 @@ local Weights,Gradients = model:getParameters()
 
 local savedModel --savedModel - lower footprint model to save
 if opt.nGPU > 1 then
-    model:syncParameters()
     savedModel = model.modules[1]:clone('weight','bias','running_mean','running_std')
 else
     savedModel = model:clone('weight','bias','running_mean','running_std')
@@ -131,6 +131,7 @@ print(loss)
 local optimState = {
     learningRate = opt.LR,
     momentum = opt.momentum,
+    dampening = 0,
     weightDecay = opt.weightDecay,
     learningRateDecay = opt.LRDecay
 }
@@ -186,9 +187,7 @@ local function Forward(Data, train)
     local y, currLoss
     NumSamples = NumSamples + x:size(1)
     NumBatches = NumBatches + 1
-    if opt.nGPU > 1 then
-      model:syncParameters()
-    end
+
     y = model:forward(x)
     currLoss = loss:forward(y,yt)
     if train then
@@ -199,6 +198,9 @@ local function Forward(Data, train)
         return currLoss, Gradients
       end
       _G.optim[opt.optimization](feval, Weights, optimState)
+      if opt.nGPU > 1 then
+        model:syncParameters()
+      end
     end
 
     lossVal = currLoss + lossVal
