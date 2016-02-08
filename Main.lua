@@ -59,7 +59,16 @@ if opt.augment then
 end
 ----------------------------------------------------------------------
 -- Model + Loss:
-local model = require(opt.network)
+local model
+if paths.filep(opt.load) then
+  pcall(require , 'nn')
+  pcall(require , 'cunn')
+  pcall(require , 'cudnn')
+  model = torch.load(opt.load)
+else
+  model = require(opt.network)
+end
+
 local loss = nn.ClassNLLCriterion()
 -- classes
 local data = require 'Data'
