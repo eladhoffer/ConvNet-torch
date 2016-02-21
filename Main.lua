@@ -3,10 +3,11 @@ require 'xlua'
 require 'optim'
 require 'pl'
 require 'trepl'
+require 'nn'
 
 ----------------------------------------------------------------------
 
-cmd = torch.CmdLine()
+local cmd = torch.CmdLine()
 cmd:addTime()
 cmd:text()
 cmd:text('Training a convolutional network for visual classification')
@@ -29,10 +30,10 @@ cmd:option('-threads',            8,                      'number of threads')
 cmd:option('-type',               'cuda',                 'float or cuda')
 cmd:option('-devid',              1,                      'device ID (if using CUDA)')
 cmd:option('-nGPU',               1,                      'num of gpu devices used')
-cmd:option('-constBatchSize',     false,                    'do not allow varying batch sizes - e.g for ccn2 kernel')
+cmd:option('-constBatchSize',     false,                  'do not allow varying batch sizes - e.g for ccn2 kernel')
 
 cmd:text('===>Save/Load Options')
-cmd:option('-load',               '',                  'load existing net weights')
+cmd:option('-load',               '',                     'load existing net weights')
 cmd:option('-save',               os.date():gsub(' ',''), 'save directory')
 
 cmd:text('===>Data Options')
@@ -61,7 +62,6 @@ end
 -- Model + Loss:
 local model
 if paths.filep(opt.load) then
-  pcall(require , 'nn')
   pcall(require , 'cunn')
   pcall(require , 'cudnn')
   model = torch.load(opt.load)
@@ -99,12 +99,15 @@ if opt.type =='cuda' then
     require 'cutorch'
     require 'cunn'
     cutorch.setDevice(opt.devid)
-    model:cuda()
-    loss = loss:cuda()
+    local cudnnAvailable = pcall(require , 'cudnn')
+    if cudnnAvailable then
+      model = cudnn.convert(model, cudnn)
+    end
     TensorType = 'torch.CudaTensor'
 end
 
-
+model:type(TensorType)
+loss = loss:type(TensorType)
 
 ---Support for multiple GPUs - currently data parallel scheme
 if opt.nGPU > 1 then
@@ -120,13 +123,6 @@ end
 -- Optimization configuration
 local Weights,Gradients = model:getParameters()
 
-local savedModel --savedModel - lower footprint model to save
-if opt.nGPU > 1 then
-    savedModel = model.modules[1]:clone('weight','bias','running_mean','running_std')
-else
-    savedModel = model:clone('weight','bias','running_mean','running_std')
-end
-
 ----------------------------------------------------------------------
 print '==> Network'
 print(model)
@@ -134,7 +130,6 @@ print('==>' .. Weights:nElement() ..  ' Parameters')
 
 print '==> Loss'
 print(loss)
-
 
 ------------------Optimization Configuration--------------------------
 local optimState = {
@@ -200,7 +195,7 @@ local function Forward(Data, train)
     y = model:forward(x)
     currLoss = loss:forward(y,yt)
     if train then
-      function feval()
+      local function feval()
         model:zeroGradParameters()
         local dE_dy = loss:backward(y, yt)
         model:backward(x, dE_dy)
@@ -249,7 +244,7 @@ while epoch ~= opt.epoch do
     --Train
     confusion:zero()
     local LossTrain = Train(data.TrainData)
-    torch.save(netFilename, savedModel)
+    torch.save(netFilename, model:clearState())
     confusion:updateValids()
     local ErrTrain = (1-confusion.totalValid)
     if #classes <= 10 then
