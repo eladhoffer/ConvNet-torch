@@ -27,7 +27,7 @@ cmd:option('-epoch',              -1,                     'number of epochs to t
 
 cmd:text('===>Platform Optimization')
 cmd:option('-threads',            8,                      'number of threads')
-cmd:option('-type',               'cuda',                 'float or cuda')
+cmd:option('-type',               'cuda',                 'cuda/cl/float/double')
 cmd:option('-devid',              1,                      'device ID (if using CUDA)')
 cmd:option('-nGPU',               1,                      'num of gpu devices used')
 cmd:option('-constBatchSize',     false,                  'do not allow varying batch sizes - e.g for ccn2 kernel')
@@ -53,8 +53,8 @@ opt.save = paths.concat('./Results', opt.save)
 opt.preProcDir = paths.concat(opt.preProcDir, opt.dataset .. '/')
 os.execute('mkdir -p ' .. opt.preProcDir)
 torch.setnumthreads(opt.threads)
-
 torch.setdefaulttensortype('torch.FloatTensor')
+
 if opt.augment then
     require 'image'
 end
@@ -94,8 +94,16 @@ local optStateFilename = paths.concat(opt.save,'optState')
 local Log = optim.Logger(logFilename)
 ----------------------------------------------------------------------
 
-local TensorType = 'torch.FloatTensor'
-if opt.type =='cuda' then
+local types = {
+  cuda = 'torch.CudaTensor',
+  float = 'torch.FloatTensor',
+  cl = 'torch.ClTensor',
+  double = 'torch.DoubleTensor'
+}
+
+local TensorType = types[opt.type] or 'torch.FloatTensor'
+
+if opt.type == 'cuda' then
     require 'cutorch'
     require 'cunn'
     cutorch.setDevice(opt.devid)
@@ -103,7 +111,10 @@ if opt.type =='cuda' then
     if cudnnAvailable then
       model = cudnn.convert(model, cudnn)
     end
-    TensorType = 'torch.CudaTensor'
+elseif opt.type == 'cl' then
+    require 'cltorch'
+    require 'clnn'
+    cltorch.setDevice(opt.devid)
 end
 
 model:type(TensorType)
